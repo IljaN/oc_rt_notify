@@ -4,10 +4,15 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <script type="text/javascript">
-      var source = new EventSource("http://localhost:8080/notifications");
-      source.onmessage = function(event) {
-        document.getElementById("messages").innerHTML += "<p>" + event.data + "</p>";
-      };
+        var source = new EventSource("http://localhost:8080/notifications");
+        source.addEventListener("count", function (ev) {
+            var msg = document.createTextNode("Message:" + ev.data);
+            var entry = document.createElement("p");
+            entry.appendChild(msg);
+            document.getElementById("messages").appendChild(entry);
+
+        }, false);
+
     </script>
 </head>
 <body>
