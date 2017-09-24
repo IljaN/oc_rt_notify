@@ -1,59 +1,36 @@
 package main
 
 import (
+	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
-	"github.com/nats-io/go-nats"
-	"io"
-	"io/ioutil"
-	"math/rand"
-	"net/http"
-	"time"
+	nr "ocevent/router"
+	"ocevent/controller"
+	//"github.com/nats-io/go-nats"
 )
 
 func main() {
+	//queue, _ := nats.Connect("nats://localhost:4222")
+	router, named := configure()
+	ctrl := controller.NewController(named)
+	named.Routes(
+		nr.C("GET", "/", "index", ctrl.Index),
+		nr.C("POST", "/events", "create_event", ctrl.PublishEvent),
+		nr.C("GET", "/notifications", "event_stream", ctrl.EventStream),
+	)
 
-	notifications := make(chan int, 20)
-	go func() {
-		for {
-			notifications <- rand.Int()
-			time.Sleep(1 * time.Second)
+	router.Run()
 
-		}
+}
 
-	}()
-	sc, _ := nats.Connect("nats://localhost:4222")
+func configure() (*gin.Engine, *nr.Named) {
+	r := gin.Default()
+	r.Use(location.New(location.Config{
+		Scheme: "http",
+		Host:   "localhost:8080",
+	}))
 
-	router := gin.Default()
-	router.POST("/events", func(c *gin.Context) {
-		var event struct {
-			Type string `json:"type" binding:"required"`
-			To   string `json:"to" binding:"required"`
-		}
+	r.LoadHTMLGlob("templates/*")
 
-		c.BindJSON(&event)
-		sc.Publish("events:"+event.To, []byte(event.Type))
-		c.Status(http.StatusAccepted)
-	})
 
-	router.GET("/notifications", func(c *gin.Context) {
-		c.Header("Content-Type", "text/event-stream")
-		c.Header("Cache-Control", "no-cache")
-		c.Header("Connection", "keep-alive")
-
-		c.Stream(func(w io.Writer) bool {
-			select {
-			case msg := <-notifications:
-				c.SSEvent("count", msg)
-			}
-			return true
-		})
-	})
-
-	router.GET("/", func(c *gin.Context) {
-		html, _ := ioutil.ReadFile("test.html")
-		c.Writer.Write([]byte(html))
-		c.Status(http.StatusOK)
-	})
-
-	router.Run(":8080")
+	return r, nr.CreateNamedRouter(r)
 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <script type="text/javascript">
-        var source = new EventSource("http://localhost:8080/notifications");
+        var source = new EventSource("{{ .eventSourceHost }}");
         source.addEventListener("count", function (ev) {
             var msg = document.createTextNode("Message:" + ev.data);
             var entry = document.createElement("p");
