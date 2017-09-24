@@ -15,7 +15,7 @@ func main() {
 	named.Routes(
 		nr.C("GET", "/", "index", ctrl.Index),
 		nr.C("POST", "/events", "create_event", ctrl.Publish),
-		nr.C("GET", "/notifications", "event_stream", ctrl.Stream),
+		nr.C("GET", "/events", "event_stream", ctrl.Stream),
 	)
 
 	router.Run()
