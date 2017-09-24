@@ -4,15 +4,18 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <script type="text/javascript">
-        var source = new EventSource("{{ .eventSourceHost }}");
-        source.addEventListener("count", function (ev) {
-            var msg = document.createTextNode("Message:" + ev.data);
-            var entry = document.createElement("p");
-            entry.appendChild(msg);
-            document.getElementById("messages").appendChild(entry);
-
-        }, false);
-
+        var topics = prompt("Topics?");
+        if (topics !== null) {
+            var source = new EventSource("{{ .eventSourceHost }}?topics=" + topics);
+            topics.split(";").forEach(function(topic) {
+                source.addEventListener(topic, function (ev) {
+                    var msg = document.createTextNode("Message:" +   ev.data);
+                    var entry = document.createElement("p");
+                    entry.appendChild(msg);
+                    document.getElementById("messages").appendChild(entry);
+                }, false);
+            });
+        }
     </script>
 </head>
 <body>
