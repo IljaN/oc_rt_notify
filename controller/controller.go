@@ -1,13 +1,13 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/nats-io/go-nats"
 	"io"
 	"net/http"
 	"ocevent/router"
 	"strings"
-	"fmt"
 )
 
 type Controller struct {
@@ -43,6 +43,7 @@ func (ctrl *Controller) Stream(c *gin.Context) {
 
 	messages := make(chan *nats.Msg, 15)
 	topics := strings.Split(c.DefaultQuery("topics", ""), ";")
+
 	for _, t := range topics {
 		ctrl.Nats.Subscribe(t, func(msg *nats.Msg) {
 			messages <- msg
