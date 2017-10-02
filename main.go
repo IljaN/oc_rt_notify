@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
-	"github.com/nats-io/go-nats"
+	"github.com/nats-io/go-nats-streaming"
 	"io"
 	"net/http"
 	"strings"
 )
 
-var nc *nats.Conn
+var sc stan.Conn
 
 func main() {
 	router := gin.Default()
-	nc, _ = nats.Connect("nats://localhost:4222")
+	nc, _ := stan.Connect("test-cluster", "foo123")
+	sc = nc
 
 	router.Use(location.New(location.Config{
 		Scheme: "http",
@@ -22,19 +23,13 @@ func main() {
 	}))
 
 	router.LoadHTMLGlob("templates/*")
+
 	router.GET("/", Index)
 	router.POST("/events", Publish)
 	router.GET("/events", Stream)
+
 	router.Run()
 
-}
-
-func Index(c *gin.Context) {
-	url := location.Get(c)
-	url.Path = "/events"
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"eventSourceHost": url.String(),
-	})
 }
 
 func Publish(c *gin.Context) {
@@ -44,7 +39,7 @@ func Publish(c *gin.Context) {
 	}
 
 	c.BindJSON(&event)
-	nc.Publish(event.To, []byte(event.Type))
+	sc.Publish(event.To, []byte(event.Type))
 	c.Status(http.StatusAccepted)
 }
 
@@ -53,14 +48,14 @@ func Stream(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 
-	messages := make(chan *nats.Msg, 15)
+	messages := make(chan *stan.Msg, 15)
 	topics := strings.Split(c.DefaultQuery("topics", ""), ";")
 
 	for _, t := range topics {
-		nc.Subscribe(t, func(msg *nats.Msg) {
+		sc.Subscribe(t, func(msg *stan.Msg) {
 			messages <- msg
 
-		})
+		}, stan.DeliverAllAvailable())
 	}
 
 	c.Stream(func(w io.Writer) bool {
@@ -69,5 +64,13 @@ func Stream(c *gin.Context) {
 			c.SSEvent(msg.Subject, fmt.Sprintf("%s", msg.Data))
 		}
 		return true
+	})
+}
+
+func Index(c *gin.Context) {
+	url := location.Get(c)
+	url.Path = "/events"
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"eventSourceHost": url.String(),
 	})
 }
