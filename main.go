@@ -7,15 +7,16 @@ import (
 	"github.com/nats-io/go-nats-streaming"
 	"io"
 	"net/http"
-	"strings"
 )
 
 var sc stan.Conn
+var sessionManager *SessionManager
 
 func main() {
 	router := gin.Default()
-	nc, _ := stan.Connect("test-cluster", "foo123")
+	nc, _ := stan.Connect("test-cluster", "publisher")
 	sc = nc
+	sessionManager = NewSessionManager()
 
 	router.Use(location.New(location.Config{
 		Scheme: "http",
@@ -34,12 +35,12 @@ func main() {
 
 func Publish(c *gin.Context) {
 	var event struct {
-		Type string `json:"type" binding:"required"`
+		Data string `json:"data" binding:"required"`
 		To   string `json:"to" binding:"required"`
 	}
 
 	c.BindJSON(&event)
-	sc.Publish(event.To, []byte(event.Type))
+	sc.Publish(event.To, []byte(event.Data))
 	c.Status(http.StatusAccepted)
 }
 
@@ -48,23 +49,19 @@ func Stream(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 
-	messages := make(chan *stan.Msg, 15)
-	topics := strings.Split(c.DefaultQuery("topics", ""), ";")
+	userId := c.DefaultQuery("userId", "")
 
-	for _, t := range topics {
-		sc.Subscribe(t, func(msg *stan.Msg) {
-			messages <- msg
-
-		}, stan.DeliverAllAvailable())
-	}
+	ses := sessionManager.StartSession(userId)
+	defer sessionManager.EndSession(ses)
 
 	c.Stream(func(w io.Writer) bool {
 		select {
-		case msg := <-messages:
+		case msg := <-ses.Messages:
 			c.SSEvent(msg.Subject, fmt.Sprintf("%s", msg.Data))
 		}
 		return true
 	})
+
 }
 
 func Index(c *gin.Context) {
