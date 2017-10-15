@@ -38,23 +38,3 @@ func NewSessionManager() *SessionManager {
 		subscribers: new(Subscribers),
 	}
 }
-
-func (sm *SessionManager) String() string {
-	res := ""
-
-	sm.subscribers.Range(func(key, value interface{}) bool {
-		res += key.(string) + "<\br>"
-		return true
-		value.(*Subscriber).Sessions.Range(func(key, value interface{}) bool {
-			res += "---" + key.(string) + "<\br>"
-			return true
-
-		})
-
-		return true
-
-	})
-
-	return res
-
-}
