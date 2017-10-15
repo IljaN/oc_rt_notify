@@ -7,6 +7,7 @@ import (
 	"github.com/nats-io/go-nats-streaming"
 	"io"
 	"net/http"
+	"time"
 )
 
 var sc stan.Conn
@@ -14,6 +15,7 @@ var sessionManager *SessionManager
 
 func main() {
 	router := gin.Default()
+
 	nc, _ := stan.Connect("test-cluster", "publisher")
 	sc = nc
 	sessionManager = NewSessionManager()
@@ -50,14 +52,20 @@ func Stream(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 
 	userId := c.DefaultQuery("userId", "")
-
 	ses := sessionManager.StartSession(userId)
-	defer sessionManager.EndSession(ses)
+	pinger := time.NewTicker(5 * time.Second)
+
+	defer func() {
+		sessionManager.EndSession(ses)
+		pinger.Stop()
+	}()
 
 	c.Stream(func(w io.Writer) bool {
 		select {
 		case msg := <-ses.Messages:
 			c.SSEvent(msg.Subject, fmt.Sprintf("%s", msg.Data))
+		case <-pinger.C:
+			c.SSEvent("ping", time.Now().String())
 		}
 		return true
 	})
