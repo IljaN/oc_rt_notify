@@ -41,7 +41,9 @@ class Application extends App {
 			$er = new EventRouterService(
 				$s->getConfig(),
 				new GuzzleClient(),
-				$s->getContentSecurityPolicyManager()
+				$s->getContentSecurityPolicyManager(),
+				$s->getGroupManager()
+
 			);
 
 			\OCP\Util::connectHook('OCP\Share', 'post_shared', $er, 'onPostShare');
