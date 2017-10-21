@@ -1,0 +1,14 @@
+{
+    "name": "IljaN/RealTimeNotifications",
+    "type": "owncloud-app",
+    "license": "mit",
+    "authors": [
+        {
+            "name": "Ilja Neumann",
+            "email": "ineumann@owncloud.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^6.3"
+    }
+}

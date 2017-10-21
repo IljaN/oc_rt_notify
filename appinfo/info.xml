@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<info>
+    <id>realtime_notifications</id>
+    <name>Real-Time Notifications</name>
+    <description>Get notified about shared files and other activities instantly</description>
+    <licence>AGPL</licence>
+    <author>Ilja Neumann</author>
+    <version>0.1.2</version>
+    <namespace>RealTimeNotifications</namespace>
+    <use-migrations>false</use-migrations>
+    <dependencies>
+        <owncloud min-version="10.0" max-version="10.0" />
+    </dependencies>
+    <summary>Summary Here</summary>
+    <types>
+        <filesystem/>
+    </types>
+    <category>productivity</category>
+</info>
