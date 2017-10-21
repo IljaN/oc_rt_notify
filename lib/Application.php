@@ -14,8 +14,6 @@ class Application extends App {
 	/** @var EventRouterService  */
 	private $eventRouter;
 
-
-
 	/**
 	 *
 	 * @param array $urlParams
@@ -35,8 +33,6 @@ class Application extends App {
 			}
 		);
 
-
-
 		$c->registerService('EventRouterService', function (IAppContainer $c) use ($s) {
 			$er = new EventRouterService(
 				$s->getConfig(),
@@ -47,7 +43,6 @@ class Application extends App {
 			);
 
 			\OCP\Util::connectHook('OCP\Share', 'post_shared', $er, 'onPostShare');
-			$er->run();
 
 			return $er;
 		});
@@ -62,7 +57,5 @@ class Application extends App {
 				$this->eventRouter
 			);
 		});
-
 	}
-
 }

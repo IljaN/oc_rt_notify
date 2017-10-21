@@ -50,14 +50,12 @@ class EventRouterService {
 			self::CFG_EVENT_BACKEND_URL,
 			'http://localhost:8080'
 		);
-	}
 
-	public function run() {
+
 		$this->cspManager->addDefaultPolicy((new EmptyContentSecurityPolicy())
 			->addAllowedConnectDomain($this->backendHost)
 		);
 	}
-
 
 	public function onPostShare($params)  {
 		$event = ['to' => $params['shareWith'], 'data' => $params];
@@ -79,7 +77,6 @@ class EventRouterService {
 			}
 
 			\GuzzleHttp\Promise\unwrap($promises);
-
 		}
 	}
 
