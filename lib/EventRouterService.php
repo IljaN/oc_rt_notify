@@ -3,7 +3,6 @@
 namespace OCA\RealTimeNotifications;
 
 
-use GuzzleHttp\Promise;
 use OC\Share\Constants;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\Http\Client\IClient;
@@ -52,16 +51,20 @@ class EventRouterService {
 		);
 
 
-		$this->cspManager->addDefaultPolicy((new EmptyContentSecurityPolicy())
-			->addAllowedConnectDomain($this->backendHost)
-		);
+		$this->cspManager
+			->addDefaultPolicy(
+				(new EmptyContentSecurityPolicy())
+					->addAllowedConnectDomain($this->backendHost)
+			);
 	}
 
 	public function onPostShare($params)  {
+		$publishingEndpoint = $this->getPublishingEndpoint();
+
 		$event = ['to' => $params['shareWith'], 'data' => $params];
 
 		if ($params['shareType'] == Constants::SHARE_TYPE_USER) {
-			$this->http->post($this->backendHost . '/events', ['json' => $event]);
+			$this->http->post($publishingEndpoint, ['json' => $event]);
 			return;
 		}
 
@@ -69,15 +72,22 @@ class EventRouterService {
 			$shareWithGroup = $this->gm->get($params['shareWith']);
 
 			$promises = [];
+
 			foreach ($shareWithGroup->getUsers() as $member) {
 				$event['to'] = $member->getUID();
 				$promises[$member->getUID()] = $this->http->postAsync(
-					$this->backendHost . '/events', ['json' => $event]
+					$publishingEndpoint, ['json' => $event]
 				);
 			}
 
 			\GuzzleHttp\Promise\unwrap($promises);
+			return;
 		}
+	}
+
+
+	private function getPublishingEndpoint() {
+		return $this->backendHost . '/events';
 	}
 
 
@@ -85,3 +95,4 @@ class EventRouterService {
 		return $this->backendHost;
 	}
 }
+
