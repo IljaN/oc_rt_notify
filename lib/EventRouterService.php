@@ -26,7 +26,7 @@ class EventRouterService {
 	private $cspManager;
 
 	/** @var IGroupManager  */
-	private $gm;
+	private $groupManager;
 
 
 	private $backendHost;
@@ -43,7 +43,7 @@ class EventRouterService {
 		$this->cfg = $cfg;
 		$this->http = $http;
 		$this->cspManager = $cspManager;
-		$this->gm = $gm;
+		$this->groupManager = $gm;
 
 		$this->backendHost = $cfg->getSystemValue(
 			self::CFG_EVENT_BACKEND_URL,
@@ -60,29 +60,27 @@ class EventRouterService {
 
 	public function onPostShare($params)  {
 		$publishingEndpoint = $this->getPublishingEndpoint();
+		$shareWith  = $params['shareWith'];
+		$shareType = $params['shareType'];
 
-		$event = ['to' => $params['shareWith'], 'data' => $params];
+		$event = ['to' => [], 'data' => []];
 
-		if ($params['shareType'] == Constants::SHARE_TYPE_USER) {
-			$this->http->post($publishingEndpoint, ['json' => $event]);
-			return;
+		switch ($shareType) {
+			case Constants::SHARE_TYPE_USER:
+				$event = ['to' => [$shareWith]];
+				break;
+			case Constants::SHARE_TYPE_GROUP:
+				$shareWithGroup = $this->groupManager->get($shareWith);
+				foreach ($shareWithGroup->getUsers() as $member) {
+					$event['to'][] = $member->getUID();
+				}
+				break;
+			default:
+				return;
 		}
 
-		if ($params['shareType'] == Constants::SHARE_TYPE_GROUP) {
-			$shareWithGroup = $this->gm->get($params['shareWith']);
-
-			$promises = [];
-
-			foreach ($shareWithGroup->getUsers() as $member) {
-				$event['to'] = $member->getUID();
-				$promises[$member->getUID()] = $this->http->postAsync(
-					$publishingEndpoint, ['json' => $event]
-				);
-			}
-
-			\GuzzleHttp\Promise\unwrap($promises);
-			return;
-		}
+		$event['data'] = $params;
+		$this->http->post($publishingEndpoint, ['json' => $event]);
 	}
 
 
