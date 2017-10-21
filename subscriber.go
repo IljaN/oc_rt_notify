@@ -20,9 +20,13 @@ func NewSubscriber(id string) *Subscriber {
 	sub := new(Subscriber)
 	sub.Id = id
 	sub.Sessions = new(sync.Map)
-	con, _ := stan.Connect("test-cluster", id)
+	con, err := stan.Connect("test-cluster", id)
+
+	if err != nil {
+		panic(err)
+	}
 	sub.BusConn = con
-	sub.Broadcast = make(chan *stan.Msg)
+	sub.Broadcast = make(chan *stan.Msg, 100)
 
 	return sub
 }
@@ -51,7 +55,7 @@ func (sub *Subscriber) RegisterSession() *Session {
 
 	cs := &Session{
 		Id:         sessid,
-		Messages:   make(chan *stan.Msg),
+		Messages:   make(chan *stan.Msg, 50),
 		Subscriber: sub,
 	}
 
@@ -59,10 +63,15 @@ func (sub *Subscriber) RegisterSession() *Session {
 	ses := v.(*Session)
 
 	if sub.SessionsCount == 0 {
-		sub.Subscription, _ = sub.BusConn.Subscribe(sub.Id, func(msg *stan.Msg) {
+		subscription, err := sub.BusConn.Subscribe(sub.Id, func(msg *stan.Msg) {
 			sub.Broadcast <- msg
 		}, stan.DurableName("events:"+sub.Id), stan.StartWithLastReceived())
 
+		if err != nil {
+			panic(err)
+		}
+
+		sub.Subscription = subscription
 	}
 
 	sub.SessionsCount++
