@@ -8,6 +8,7 @@ import (
 	"github.com/nats-io/go-nats-streaming"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -39,14 +40,24 @@ func main() {
 
 func Publish(c *gin.Context) {
 	var event struct {
-		To   string                 `json:"to" binding:"required"`
+		To   []string               `json:"to" binding:"required"`
 		Data map[string]interface{} `json:"data"`
 	}
 
 	c.BindJSON(&event)
 	data, _ := json.Marshal(event.Data)
 
-	sc.Publish(event.To, []byte(data))
+	var wg sync.WaitGroup
+	wg.Add(len(event.To))
+
+	for i := range event.To {
+		go func(i int) {
+			defer wg.Done()
+			sc.Publish(event.To[i], []byte(data))
+		}(i)
+	}
+
+	wg.Wait()
 	c.Status(http.StatusAccepted)
 }
 
