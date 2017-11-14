@@ -27,18 +27,14 @@ func main() {
 		Host:   "localhost:8080",
 	}))
 
-	router.LoadHTMLGlob("templates/*")
-
-	router.GET("/", Index)
-	router.POST("/events", Publish)
-	router.GET("/events", Stream)
-	router.GET("/system/status", Status)
+	router.POST("/events", Authenticate(Publishing), publishEvent)
+	router.GET("/events", Authenticate(Subscribing), subscribe)
+	router.GET("/system/status", getSystemStatus)
 
 	router.Run()
-
 }
 
-func Publish(c *gin.Context) {
+func publishEvent(c *gin.Context) {
 	var event struct {
 		To   []string               `json:"to" binding:"required"`
 		Data map[string]interface{} `json:"data"`
@@ -61,14 +57,13 @@ func Publish(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 }
 
-func Stream(c *gin.Context) {
+func subscribe(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("Access-Control-Allow-Origin", "http://localhost:8000")
 
-	userId := c.DefaultQuery("userId", "")
-	ses := sessionManager.StartSession(userId)
+	ses := sessionManager.StartSession(c.MustGet("username").(string))
 	pinger := time.NewTicker(5 * time.Second)
 
 	defer func() {
@@ -94,14 +89,6 @@ func Stream(c *gin.Context) {
 
 }
 
-func Status(c *gin.Context) {
+func getSystemStatus(c *gin.Context) {
 	c.Status(200)
-}
-
-func Index(c *gin.Context) {
-	url := location.Get(c)
-	url.Path = "/events"
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"eventSourceHost": url.String(),
-	})
 }
