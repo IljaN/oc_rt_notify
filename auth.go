@@ -5,7 +5,6 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	"github.com/gin-gonic/gin"
 
-
 	"net/http"
 )
 
@@ -14,10 +13,9 @@ const sharedSecret = "186163c9826c3a0762319a81a3889dd9"
 type AuthContext int
 
 const (
-	Publishing   AuthContext = 0
-	Subscribing  AuthContext = 1
+	Publishing  AuthContext = 0
+	Subscribing AuthContext = 1
 )
-
 
 func Authenticate(ctx AuthContext) gin.HandlerFunc {
 
@@ -29,7 +27,7 @@ func Authenticate(ctx AuthContext) gin.HandlerFunc {
 			return
 		}
 
-		if err = sig.Verify(sharedSecret, crypto.SigningMethodHS512); err != nil {
+		if err = sig.Verify([]byte(sharedSecret), crypto.SigningMethodHS512); err != nil {
 			respondWithError(http.StatusUnauthorized, err.Error(), c)
 			return
 		}
