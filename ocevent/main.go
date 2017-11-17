@@ -27,9 +27,10 @@ func main() {
 		Host:   "localhost:8080",
 	}))
 
-	router.POST("/events", Authenticate(Publishing), publishEvent)
+	router.POST("/events", publishEvent)
 	router.GET("/events", Authenticate(Subscribing), subscribe)
 	router.GET("/system/status", getSystemStatus)
+	router.OPTIONS("/events", preFlight)
 
 	router.Run()
 }
@@ -58,10 +59,9 @@ func publishEvent(c *gin.Context) {
 }
 
 func subscribe(c *gin.Context) {
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "http://localhost:8000")
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Credentials", "true")
+	c.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers, authorization")
 
 	ses := sessionManager.StartSession(c.MustGet("username").(string))
 	pinger := time.NewTicker(5 * time.Second)
@@ -82,7 +82,7 @@ func subscribe(c *gin.Context) {
 			}
 
 		case <-pinger.C:
-			c.SSEvent("ping", time.Now().String())
+			c.SSEvent("comment", time.Now().String())
 		}
 		return true
 	})
@@ -91,4 +91,11 @@ func subscribe(c *gin.Context) {
 
 func getSystemStatus(c *gin.Context) {
 	c.Status(200)
+}
+
+func preFlight(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Credentials", "true")
+	c.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers, authorization")
+	c.Status(http.StatusOK)
 }
