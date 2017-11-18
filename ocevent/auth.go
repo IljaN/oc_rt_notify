@@ -47,10 +47,32 @@ func Authenticate(ctx AuthContext) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("username", sub)
-		c.Next()
+		aud, ok := j.Claims().Audience()
+
+
+		if !ok {
+			respondWithError(http.StatusUnauthorized, err.Error(), c)
+			return
+		}
+
+		if len(aud) > 0 && aud[0] == "subscriber" && ctx == Subscribing {
+			c.Set("username", sub)
+			c.Next()
+			return
+		}
+
+
+		if len(aud) == 0 && aud[0] == "publisher" && ctx == Publishing {
+			c.Next()
+			return
+		}
+
+
+		respondWithError(http.StatusUnauthorized, "Audience miss-match", c)
+		return
 	}
 }
+
 
 func respondWithError(code int, message string, c *gin.Context) {
 	resp := map[string]string{"error": message}

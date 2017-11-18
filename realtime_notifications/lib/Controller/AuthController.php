@@ -42,6 +42,7 @@ class AuthController extends Controller {
 			->setNotBefore(time())
 			->setIssuedAt(time())
 			->setExpiration(time() + 10)
+			->setAudience('subscriber')
 			->setSubject($this->user->getUser()->getUID())
 			->sign($this->signer, '186163c9826c3a0762319a81a3889dd9')
 			->getToken();
