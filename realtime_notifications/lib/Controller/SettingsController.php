@@ -2,17 +2,18 @@
 
 namespace OCA\RealTimeNotifications\Controller;
 
-use OCA\RealTimeNotifications\EventRouterService;
+use OCA\RealTimeNotifications\Config;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\DataResponse;
 
 class SettingsController extends Controller {
 
-	/** @var EventRouterService  */
-	private $er;
+	/** @var Config  */
+	private $cfg;
 
-	public function __construct($appName, \OCP\IRequest $request, EventRouterService $er) {
+	public function __construct($appName, \OCP\IRequest $request, Config $cfg) {
 		parent::__construct($appName, $request);
-		$this->er = $er;
+		$this->cfg = $cfg;
 	}
 
 
@@ -20,9 +21,21 @@ class SettingsController extends Controller {
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 */
-	public function get() {
-		return new \OCP\AppFramework\Http\DataResponse(
-			['backend_host' => $this->er->getBackendHost()]);
+	public function getBackendHost() {
+		return new DataResponse(
+			['backend_host' => $this->cfg->getBackendHost()]);
+	}
+
+	/**
+	 * @NoCSRFRequired
+	 */
+	public function getAdminSettings() {
+		$resp = [
+			'backend_host' => $this->cfg->getBackendHost(),
+			'secret' => $this->cfg->getSecret()
+		];
+
+		return new DataResponse($resp);
 	}
 
 }
