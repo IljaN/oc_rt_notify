@@ -15,9 +15,9 @@ use GuzzleHttp\Client as GuzzleClient;
 
 class EventRouterService {
 
-	const CFG_EVENT_BACKEND_URL = 'realtime_notifications.backend_host';
 
-	/** @var  IConfig */
+
+	/** @var  Config */
 	private $cfg;
 
 	/** @var  IClient */
@@ -36,31 +36,20 @@ class EventRouterService {
 	private $backendHost;
 
 
+
 	/**
 	 * EventRouterService constructor.
 	 *
-	 * @param IConfig $cfg
+	 * @param Config $cfg
 	 * @param GuzzleClient $http
 	 * @param IContentSecurityPolicyManager $cspManager
 	 */
-	public function __construct(IConfig $cfg, GuzzleClient $http, IContentSecurityPolicyManager $cspManager, IGroupManager $gm, TokenGenerator $tokenGenerator) {
+	public function __construct(Config $cfg, GuzzleClient $http, IGroupManager $gm, TokenGenerator $tokenGenerator) {
 		$this->cfg = $cfg;
 		$this->http = $http;
-		$this->cspManager = $cspManager;
 		$this->groupManager = $gm;
 		$this->tokenGenerator = $tokenGenerator;
-
-		$this->backendHost = $cfg->getSystemValue(
-			self::CFG_EVENT_BACKEND_URL,
-			'http://localhost:8080'
-		);
-
-
-		$this->cspManager
-			->addDefaultPolicy(
-				(new EmptyContentSecurityPolicy())
-					->addAllowedConnectDomain($this->backendHost)
-			);
+		$this->backendHost = $cfg->getBackendHost();
 	}
 
 	public function onPostShare($params)  {

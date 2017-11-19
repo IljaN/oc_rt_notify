@@ -3,11 +3,13 @@ namespace OCA\RealTimeNotifications\AppInfo;
 
 
 use OCA\RealTimeNotifications\Authentication\TokenGenerator;
+use OCA\RealTimeNotifications\Config;
 use OCA\RealTimeNotifications\Controller\AuthController;
 use OCA\RealTimeNotifications\Controller\SettingsController;
 use OCA\RealTimeNotifications\EventRouterService;
 use OCA\RealTimeNotifications\ShareHooks;
 use OCP\AppFramework\App;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\AppFramework\IAppContainer;
 use GuzzleHttp\Client as GuzzleClient;
 
@@ -15,7 +17,9 @@ class Application extends App {
 
 	const APP_ID = 'realtime_notifications';
 
-	private $secret = '186163c9826c3a0762319a81a3889dd9';
+	/** @var Config  */
+	private $config;
+
 
 	/**
 	 *
@@ -27,6 +31,7 @@ class Application extends App {
 
 		$container = $this->getContainer();
 		$server = $container->getServer();
+		$this->config = new Config($server->getConfig());
 
 		$server->getEventDispatcher()->addListener(
 			'OCA\Files::loadAdditionalScripts', function() {
@@ -35,15 +40,26 @@ class Application extends App {
 			}
 		);
 
+		$server->getContentSecurityPolicyManager()->addDefaultPolicy(
+			(new EmptyContentSecurityPolicy())
+				->addAllowedConnectDomain($this->config->getBackendHost())
+		);
+
+		$container->registerService('EventConfig', function (IAppContainer $c) use ($server) {
+			return $this->config;
+
+		});
+
+
+
 		$container->registerService('EventAuthTokenGenerator', function (IAppContainer $c) use ($server) {
-			return new TokenGenerator($this->secret);
+			return new TokenGenerator($c->query('EventConfig')->getSecret());
 		});
 
 		$container->registerService('EventRouterService', function (IAppContainer $c) use ($server) {
 			$er = new EventRouterService(
-				$server->getConfig(),
+				$c->query('EventConfig'),
 				new GuzzleClient(),
-				$server->getContentSecurityPolicyManager(),
 				$server->getGroupManager(),
 				$c->query('EventAuthTokenGenerator')
 			);
@@ -61,7 +77,7 @@ class Application extends App {
 			return new SettingsController(
 				self::APP_ID,
 				$c->query('Request'),
-				$c->query('EventRouterService')
+				$c->query('EventConfig')
 			);
 		});
 
