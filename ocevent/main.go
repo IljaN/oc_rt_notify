@@ -10,12 +10,18 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"oc_rt_notify/ocevent/pkg/secret"
+	//"github.com/olebedev/config"
+	"log"
 )
 
 var sc stan.Conn
 var sessionManager *SessionManager
+var sharedSecret secret.Key
 
 func main() {
+	sharedSecret = secret.GenerateKey(40)
+	log.Printf("Generated Secret: %v", sharedSecret)
 	router := gin.Default()
 
 	nc, _ := stan.Connect("test-cluster", "publisher")
@@ -27,8 +33,8 @@ func main() {
 		Host:   "localhost:8080",
 	}))
 
-	router.POST("/events", Authenticate(Publishing), publishEvent)
-	router.GET("/events", Authenticate(Subscribing), subscribe)
+	router.POST("/events", Authenticate(Publishing, sharedSecret), publishEvent)
+	router.GET("/events", Authenticate(Subscribing, sharedSecret), subscribe)
 	router.GET("/system/status", getSystemStatus)
 	router.OPTIONS("/events", preFlight)
 

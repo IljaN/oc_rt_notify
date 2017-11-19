@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"net/http"
+	"oc_rt_notify/ocevent/pkg/secret"
 )
 
-const sharedSecret = "186163c9826c3a0762319a81a3889dd9"
 
 type AuthContext int
 
@@ -17,7 +17,7 @@ const (
 	Subscribing AuthContext = 1
 )
 
-func Authenticate(ctx AuthContext) gin.HandlerFunc {
+func Authenticate(ctx AuthContext, s secret.Key) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		sig, err := jws.ParseFromHeader(c.Request, jws.Compact)
@@ -27,7 +27,7 @@ func Authenticate(ctx AuthContext) gin.HandlerFunc {
 			return
 		}
 
-		if err = sig.Verify([]byte(sharedSecret), crypto.SigningMethodHS512); err != nil {
+		if err = sig.Verify([]byte(s), crypto.SigningMethodHS512); err != nil {
 			respondWithError(err.Error(), c)
 			return
 		}
