@@ -25,28 +25,26 @@ class Application extends App {
 
 		parent::__construct(self::APP_ID, $urlParams);
 
+		$container = $this->getContainer();
+		$server = $container->getServer();
 
-		$c = $this->getContainer();
-		$s = $c->getServer();
-		$eventDispatcher = $s->getEventDispatcher();
-
-		$eventDispatcher->addListener(
+		$server->getEventDispatcher()->addListener(
 			'OCA\Files::loadAdditionalScripts', function() {
 				\OCP\Util::addScript(self::APP_ID, 'spop');
 				\OCP\Util::addStyle(self::APP_ID, 'spop');
 			}
 		);
 
-		$c->registerService('EventAuthTokenGenerator', function (IAppContainer $c) use ($s) {
+		$container->registerService('EventAuthTokenGenerator', function (IAppContainer $c) use ($server) {
 			return new TokenGenerator($this->secret);
 		});
 
-		$c->registerService('EventRouterService', function (IAppContainer $c) use ($s, $eventDispatcher) {
+		$container->registerService('EventRouterService', function (IAppContainer $c) use ($server) {
 			$er = new EventRouterService(
-				$s->getConfig(),
+				$server->getConfig(),
 				new GuzzleClient(),
-				$s->getContentSecurityPolicyManager(),
-				$s->getGroupManager(),
+				$server->getContentSecurityPolicyManager(),
+				$server->getGroupManager(),
 				$c->query('EventAuthTokenGenerator')
 			);
 			
@@ -57,9 +55,9 @@ class Application extends App {
 		});
 
 
-		$c->query('EventRouterService');
+		$container->query('EventRouterService');
 
-		$c->registerService('SettingsController', function (IAppContainer $c) use ($s) {
+		$container->registerService('SettingsController', function (IAppContainer $c) use ($server) {
 			return new SettingsController(
 				self::APP_ID,
 				$c->query('Request'),
@@ -67,14 +65,11 @@ class Application extends App {
 			);
 		});
 
-
-
-
-		$c->registerService('AuthController', function (IAppContainer $c) use ($s) {
+		$container->registerService('AuthController', function (IAppContainer $c) use ($server) {
 			return new AuthController(
 				self::APP_ID,
 				$c->query('Request'),
-				$s->getUserSession(),
+				$server->getUserSession(),
 				$c->query('EventAuthTokenGenerator')
 			);
 		});
