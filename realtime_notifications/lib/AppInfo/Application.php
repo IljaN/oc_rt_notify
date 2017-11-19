@@ -14,7 +14,7 @@ use GuzzleHttp\Client as GuzzleClient;
 class Application extends App {
 
 	const APP_ID = 'realtime_notifications';
-	
+
 	private $secret = '186163c9826c3a0762319a81a3889dd9';
 
 	/**
@@ -37,13 +37,17 @@ class Application extends App {
 			}
 		);
 
+		$c->registerService('EventAuthTokenGenerator', function (IAppContainer $c) use ($s) {
+			return new TokenGenerator($this->secret);
+		});
+
 		$c->registerService('EventRouterService', function (IAppContainer $c) use ($s, $eventDispatcher) {
 			$er = new EventRouterService(
 				$s->getConfig(),
 				new GuzzleClient(),
 				$s->getContentSecurityPolicyManager(),
-				$s->getGroupManager()
-
+				$s->getGroupManager(),
+				$c->query('EventAuthTokenGenerator')
 			);
 			
 
@@ -63,9 +67,7 @@ class Application extends App {
 			);
 		});
 
-		$c->registerService('EventAuthTokenGenerator', function (IAppContainer $c) use ($s) {
-			return new TokenGenerator($this->secret);
-		});
+
 
 
 		$c->registerService('AuthController', function (IAppContainer $c) use ($s) {

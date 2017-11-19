@@ -15,8 +15,6 @@ class TokenGenerator {
 	private $signer;
 
 	/**
-	 * AuthTokenGenerator constructor.
-	 *
 	 * @param string $secret
 	 */
 	public function __construct($secret) {
@@ -31,6 +29,16 @@ class TokenGenerator {
 			->setExpiration(time() + 10)
 			->setAudience('subscriber')
 			->setSubject($uid)
+			->sign($this->signer, $this->secret)
+			->getToken();
+	}
+
+	public function generatePublisherToken() {
+		return (new Builder())
+			->setNotBefore(time())
+			->setIssuedAt(time())
+			->setExpiration(time() + 10)
+			->setAudience('publisher')
 			->sign($this->signer, $this->secret)
 			->getToken();
 	}

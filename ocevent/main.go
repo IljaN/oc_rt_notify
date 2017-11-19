@@ -27,7 +27,7 @@ func main() {
 		Host:   "localhost:8080",
 	}))
 
-	router.POST("/events", publishEvent)
+	router.POST("/events", Authenticate(Publishing), publishEvent)
 	router.GET("/events", Authenticate(Subscribing), subscribe)
 	router.GET("/system/status", getSystemStatus)
 	router.OPTIONS("/events", preFlight)

@@ -23,58 +23,62 @@ func Authenticate(ctx AuthContext) gin.HandlerFunc {
 		sig, err := jws.ParseFromHeader(c.Request, jws.Compact)
 
 		if err != nil {
-			respondWithError(http.StatusUnauthorized, err.Error(), c)
+			respondWithError(err.Error(), c)
 			return
 		}
 
 		if err = sig.Verify([]byte(sharedSecret), crypto.SigningMethodHS512); err != nil {
-			respondWithError(http.StatusUnauthorized, err.Error(), c)
+			respondWithError(err.Error(), c)
 			return
 		}
 
 		j, err := jws.ParseJWTFromRequest(c.Request)
 
 		if err != nil {
-			respondWithError(http.StatusUnauthorized, err.Error(), c)
+			respondWithError(err.Error(), c)
 			return
 		}
 
-		sub, ok := j.Claims().Subject()
-
-		// We only need subject for auth as subscriber
-		if !ok && ctx != Subscribing {
-			respondWithError(http.StatusUnauthorized, err.Error(), c)
+		if !j.Claims().Has("aud")  {
+			respondWithError("Missing claims", c)
 			return
 		}
 
-		aud, ok := j.Claims().Audience()
+		auds, ok := j.Claims().Audience()
 
-
-		if !ok {
-			respondWithError(http.StatusUnauthorized, err.Error(), c)
+		if !ok || len(auds) < 1 {
+			respondWithError("Missing claims", c)
 			return
 		}
 
-		if len(aud) > 0 && aud[0] == "subscriber" && ctx == Subscribing {
+		aud := auds[0]
+
+		if aud == "subscriber" && ctx == Subscribing {
+			sub, ok := j.Claims().Subject()
+
+			if !ok {
+				respondWithError("Missing claims", c)
+				return
+			}
+
 			c.Set("username", sub)
 			c.Next()
 			return
 		}
 
 
-		if len(aud) == 0 && aud[0] == "publisher" && ctx == Publishing {
+		if aud == "publisher" && ctx == Publishing {
 			c.Next()
 			return
 		}
 
-
-		respondWithError(http.StatusUnauthorized, "Audience miss-match", c)
+		respondWithError("Wrong audience", c)
 		return
 	}
 }
 
 
-func respondWithError(code int, message string, c *gin.Context) {
+func respondWithError(message string, c *gin.Context) {
 	resp := map[string]string{"error": message}
-	c.AbortWithStatusJSON(code, resp)
+	c.AbortWithStatusJSON(http.StatusUnauthorized, resp)
 }

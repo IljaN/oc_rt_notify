@@ -4,6 +4,7 @@ namespace OCA\RealTimeNotifications;
 
 
 use OC\Share\Constants;
+use OCA\RealTimeNotifications\Authentication\TokenGenerator;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\Http\Client\IClient;
 use OCP\IConfig;
@@ -28,6 +29,9 @@ class EventRouterService {
 	/** @var IGroupManager  */
 	private $groupManager;
 
+	/** @var TokenGenerator  */
+	private $tokenGenerator;
+
 
 	private $backendHost;
 
@@ -39,11 +43,12 @@ class EventRouterService {
 	 * @param GuzzleClient $http
 	 * @param IContentSecurityPolicyManager $cspManager
 	 */
-	public function __construct(IConfig $cfg, GuzzleClient $http, IContentSecurityPolicyManager $cspManager, IGroupManager $gm) {
+	public function __construct(IConfig $cfg, GuzzleClient $http, IContentSecurityPolicyManager $cspManager, IGroupManager $gm, TokenGenerator $tokenGenerator) {
 		$this->cfg = $cfg;
 		$this->http = $http;
 		$this->cspManager = $cspManager;
 		$this->groupManager = $gm;
+		$this->tokenGenerator = $tokenGenerator;
 
 		$this->backendHost = $cfg->getSystemValue(
 			self::CFG_EVENT_BACKEND_URL,
@@ -80,7 +85,11 @@ class EventRouterService {
 		}
 
 		$event['data'] = $params;
-		$this->http->post($publishingEndpoint, ['json' => $event]);
+
+		$this->http->post($publishingEndpoint, [
+			'headers' => ['Authorization' => "BEARER {$this->tokenGenerator->generatePublisherToken()}"],
+			'json' => $event
+		]);
 	}
 
 
